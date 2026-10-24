@@ -8,8 +8,16 @@ progress updates for a central report.
 **This is a synthetic-data demonstration, not a clinical application.** Use only the fictional
 fixture; do not upload real patient records.
 
-See [the team handoff](PlainSpeak-MVP-Team-Handoff.md) for scope, ownership and the demo script,
-and [the architecture](PlainSpeak-architecture.md) for diagrams, data flow and agent tools.
+## Technical documentation
+
+- [HTTP API reference](docs/API.md): endpoints, payload examples, validation, and workflow semantics.
+- [Technical architecture](docs/ARCHITECTURE.md): modules, data flow, case lifecycle, evidence model, agent boundaries, persistence, and trade-offs.
+- [APIs, frameworks, and tools inventory](docs/TOOLS.md): backend/frontend libraries, external providers, environment variables, and developer tooling.
+- [Security, privacy, and limitations](docs/SECURITY-AND-LIMITATIONS.md): current safeguards, known gaps, and prerequisites for any future real-world deployment.
+- [Team handoff](PlainSpeak-MVP-Team-Handoff.md): scope, ownership, and demo script.
+- [Original architecture notes](PlainSpeak-architecture.md): additional diagrams and design notes.
+
+While the server is running, FastAPI provides an interactive API explorer at `http://127.0.0.1:3001/docs` and the OpenAPI schema at `http://127.0.0.1:3001/openapi.json`.
 
 ## Stack
 
@@ -23,38 +31,100 @@ and [the architecture](PlainSpeak-architecture.md) for diagrams, data flow and a
 | Storage | One JSON file per case in `data/cases/` (atomic writes, per-case lock) |
 | Tooling | `uv`, `ruff` (lint + format), `pytest` |
 
-## Setup
+## Setup and installation
+
+### Prerequisites
+
+- Python **3.12 or later**.
+- [`uv`](https://docs.astral.sh/uv/) for Python environment and dependency management.
+- A current Node.js installation only if you want to run the frontend controller tests.
+- An Anthropic API key for Claude summary/chat functionality.
+- A Reson8 API key for live microphone transcription. The app can be explored without using the microphone, but live voice features require this key.
+
+Install `uv` using the [official installation instructions](https://docs.astral.sh/uv/getting-started/installation/). Confirm the tools are available:
+
+```bash
+python --version
+uv --version
+node --version  # optional; only needed for frontend tests
+```
+
+Clone the public repository and enter its directory:
+
+```bash
+git clone https://github.com/vivek26-1998/PlainsSpeak.git
+cd PlainsSpeak
+```
+
+If your local repository URL differs, use the URL shown on the GitHub repository page.
+
+### Install dependencies and configure environment
+
+**Windows PowerShell:**
 
 ```powershell
 uv sync
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
+
+**macOS / Linux:**
+
+```bash
+uv sync
+test -f .env || cp .env.example .env
+```
+
+Edit `.env` and set your provider keys. Keep this file private and never commit it:
+
+```dotenv
+ANTHROPIC_API_KEY=your_anthropic_key
+ANTHROPIC_MODEL=claude-opus-5-5
+ANTHROPIC_EFFORT=medium
+ANTHROPIC_FALLBACKS=default
+RESON8_API_KEY=your_reson8_key
+PORT=3001
+PLAINSPEAK_DATA_DIR=data
+```
+
+`ANTHROPIC_MODEL` must be a model identifier available to your Anthropic account. Provider model availability can change. `RESON8_API_KEY` is required only for voice capture. Permanent keys are used by the backend; the browser receives a temporary speech token. Never paste secrets into source code, issue reports, or screenshots.
+
+Generate the fictional PDF fixtures:
+
+```bash
 uv run python scripts/make_fixture.py
 ```
 
-Fill in `ANTHROPIC_API_KEY` and `RESON8_API_KEY` in your local `.env`. The copy command preserves
-an existing file. On macOS/Linux, use `test -f .env || cp .env.example .env` instead.
-The fixture command generates `fixtures/discharge.pdf` and
-`fixtures/consultation-transcript.pdf`. Permanent keys are used only by the backend; the
-browser receives a temporary speech token.
+This creates `fixtures/discharge.pdf` and `fixtures/consultation-transcript.pdf`. The repository includes synthetic fixture PDFs, but running the generator allows you to recreate them locally.
 
-`.env` settings:
+### Setup (quick version)
 
-| Variable | Purpose |
-|---|---|
-| `ANTHROPIC_API_KEY` | Claude calls (backend only) |
-| `ANTHROPIC_MODEL` | Default `claude-opus-5-5` |
-| `ANTHROPIC_EFFORT` | `low`/`medium`/`high`/`xhigh`/`max`; empty to omit |
-| `ANTHROPIC_FALLBACKS` | `default` enables server-side refusal fallback; empty to disable |
-| `RESON8_API_KEY` | Exchanged for 10-minute browser tokens (backend only) |
-| `PORT` | Default `3001` |
+After Python 3.12+ and `uv` are installed, these are the core setup commands:
 
-## Run
+```bash
+uv sync
+test -f .env || cp .env.example .env
+uv run python scripts/make_fixture.py
+```
+
+On Windows PowerShell, replace the `test -f` line with `if (!(Test-Path .env)) { Copy-Item .env.example .env }`.
+
+## Run the local server
+
+Start the backend and static frontend from the repository root:
 
 ```bash
 uv run plainspeak
 ```
 
-Open http://127.0.0.1:3001. Microphone access requires `localhost`/`127.0.0.1` or HTTPS.
+Then open **http://127.0.0.1:3001** in your browser. To use another port, set `PORT` in `.env` before starting. Stop the server with `Ctrl+C` in the terminal. Microphone access requires `localhost`/`127.0.0.1` or HTTPS.
+
+For development, you can also launch Uvicorn directly:
+
+```bash
+uv run uvicorn plainspeak.main:create_app --factory --host 127.0.0.1 --port 3001
+```
+
+The `plainspeak` command is the recommended path because it loads settings and configures application logging consistently.
 
 > **Every page load starts a clean demo.** The app resets the single demo case
 > (`demo-patient`) when the page opens, so refreshing clears the transcript, document, drafts,
