@@ -79,7 +79,26 @@ Post-care uses `get_case_context` to load the approved evidence before asking Cl
 confirmation and rejection are application actions. Checklist generation is part of summary
 drafting; there is no separate Generate plan step. Progress applies to its approved version.
 
-## Development
+## Memory clinic demo pack
+
+For the two-person memory-care scenario, use the
+[conversation script and caregiver test guide](fixtures/memory-care-demo-script.md).
+Record that consultation, then upload the
+[fictional memory clinic summary](output/pdf/plainspeak-memory-care-discharge.pdf)
+as the supporting document. Do not upload the script or expected answers.
+
+This is a separate scenario from the fall-related `fixtures/discharge.pdf`. Reset the demo case
+only when ready to clear the previous run. The memory clinic pack includes a corrected
+misunderstanding and spoken-only details to test consultation context. Its medicine record
+is synthetic and is not a real prescription.
+
+To regenerate the one-page PDF without adding a permanent project dependency:
+
+```powershell
+uv run --with reportlab python scripts/make_memory_care_demo.py
+```
+
+## Development checks
 
 ```bash
 uv run ruff check .          # lint
