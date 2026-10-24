@@ -1,0 +1,5 @@
+# Preserve PDF offsets and image bytes across Windows and Unix checkouts.
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
