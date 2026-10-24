@@ -110,6 +110,23 @@ function renderJourney() {
   });
 }
 
+// ---------- patient identity ----------
+
+/** Fills every [data-patient] slot from the name found in the discharge document. */
+function renderPatient() {
+  const name = caseView.case.patientName;
+  const first = name?.split(" ")[0];
+  const text = {
+    full: name ?? "Patient not yet identified",
+    first: first ?? "the patient",
+    possessive: first ? `${first}’s` : "Patient’s",
+    initial: (first ?? "P")[0].toUpperCase(),
+  };
+  document.querySelectorAll("[data-patient]").forEach((el) => {
+    el.textContent = text[el.dataset.patient];
+  });
+}
+
 // ---------- rendering ----------
 
 function setCase(view) {
@@ -122,6 +139,7 @@ function setCase(view) {
   } else {
     draftEdit = null;
   }
+  renderPatient();
   renderJourney();
   renderDoctor();
   renderCaregiver();
@@ -192,7 +210,7 @@ function statusBadge(status) {
 function renderChecklist() {
   const rows = caseView.checklist.map((t) => `
     <tr>
-      <td>${esc(t.instruction)}<div>${refChips(t.sourceRefs)}</div></td>
+      <td>${esc(t.instruction)}</td>
       <td>${esc(t.timing ?? "")}</td>
       <td>${esc(t.responsibleParty)}</td>
       <td>${statusBadge(t.status)}${t.lastEvent ? `<div class="muted">${esc(t.lastEvent.actor)}<br>${esc(t.lastEvent.timestamp)}</div>` : ""}</td>
@@ -252,7 +270,7 @@ function renderReport() {
   const openTasks = caseView.checklist.filter((t) => t.status !== "done");
   const openQs = c.unresolvedQuestions.filter((q) => q.status === "open");
   $("#report").innerHTML = `
-    <h2>Central report · ${esc(c.caseId)}</h2>
+    <h2>Central report${caseView.case.patientName ? ` · ${esc(caseView.case.patientName)}` : ""}</h2>
     <p class="muted">Derived from saved approved instructions and attributed events. Self-reported progress does not indicate clinical outcome.</p>
     <h3>Approved instructions (v${approved.version}, ${esc(approved.approvedBy)}, ${esc(approved.approvedAt)})</h3>
     <p>${esc(approved.summary)}</p>

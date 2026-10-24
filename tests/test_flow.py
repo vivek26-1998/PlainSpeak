@@ -1,6 +1,7 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from plainspeak.pdf_extract import extract_passages
+from plainspeak.pdf_extract import extract_passages, find_patient_name
 from tests.conftest import FIXTURE_PDF, FakeLLM, pdf_with, text_response, tool_response
 
 CASE = "/api/cases/demo-patient"
@@ -68,6 +69,31 @@ def test_fixture_extracts_stable_passages():
     assert [p.id for p in passages[:5]] == [f"page_1_p{i}" for i in range(1, 6)]
     assert "Follow-up appointment" in passages[2].text
     assert "Transport" in passages[4].text
+
+
+def test_patient_name_comes_from_the_discharge_document(client: TestClient):
+    assert client.post("/api/cases", json={"reset": True}).json()["case"]["patientName"] is None
+    with FIXTURE_PDF.open("rb") as f:
+        view = client.post(
+            f"{CASE}/document", files={"file": ("discharge.pdf", f, "application/pdf")}
+        )
+    assert view.json()["case"]["patientName"] == "Alex Example"
+
+
+@pytest.mark.parametrize(
+    ("line", "name"),
+    [
+        ("Hospital: Riverside. Patient: Alex Example (fictional). Caregiver: Sam", "Alex Example"),
+        ("Patient: Alex Example, age 76 Caregiver: Sam Example", "Alex Example"),
+        ("Patient name: Maria Lopez Caregiver: Sam Example", "Maria Lopez"),
+        ("    Patient        Anna Müller        Discharge date     24 October 2026", "Anna Müller"),
+        ("PATIENT NAME:  Anna Müller", "Anna Müller"),
+        ("Bring the patient's identification card.", None),
+        ("  Patient should rest at home.", None),
+    ],
+)
+def test_find_patient_name(line: str, name: str | None):
+    assert find_patient_name([line]) == name
 
 
 def test_chat_blocked_before_approval(client: TestClient):

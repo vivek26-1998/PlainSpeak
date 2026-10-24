@@ -31,7 +31,12 @@ from plainspeak.contracts import (
     UnresolvedQuestion,
     utc_now,
 )
-from plainspeak.pdf_extract import NoTextError, extract_lines, extract_passages
+from plainspeak.pdf_extract import (
+    NoTextError,
+    extract_lines,
+    extract_passages,
+    extract_patient_name,
+)
 from plainspeak.storage import CaseNotFoundError, CaseStore, new_id
 from plainspeak.transcript_import import TranscriptFormatError, parse_transcript
 
@@ -122,8 +127,10 @@ def upload_document(case_id: str, file: UploadFile, store: Store) -> CaseView:
     except NoTextError as e:
         path.unlink(missing_ok=True)
         raise HTTPException(422, str(e)) from e
+    patient_name = extract_patient_name(path)
 
     with store.update(case_id) as case:
+        case.patient_name = patient_name
         current = next((s for s in case.sources if s.kind == "document"), None)
         if current and current.filename == filename and current.passages == passages:
             return _view(case)  # same document again; leave the draft and revision alone

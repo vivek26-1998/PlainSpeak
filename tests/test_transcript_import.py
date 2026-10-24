@@ -136,3 +136,32 @@ def test_speaker_numbers_without_role_words_stay_unknown():
     )
     assert [s.speaker_id for s in segments] == [0, 1]
     assert roles == {"pdf_test:0": "unknown", "pdf_test:1": "unknown"}
+
+
+def test_a_header_block_names_people_but_adds_no_speakers_or_turns():
+    segments, roles = parse_transcript(
+        [
+            "PlainSpeak Lab — Dummy Consultation Transcript",
+            "Patient: Anna Müller",
+            "Clinician: Dr. Weber",
+            "Date: 24 October 2026",
+            "Purpose: Testing patient comprehension and discharge-instruction extraction",
+            "Note: Entirely fictional data for software demonstration.",
+            "Clinician: Good morning, Anna. How are you feeling today?",
+            "Patient: Much better than when I came in. I'm still a little tired, and I cough",
+            "occasionally.",
+            "Clinician: Good.",
+        ],
+        "pdf_test",
+    )
+    assert [s.text for s in segments] == [
+        "Good morning, Anna. How are you feeling today?",
+        "Much better than when I came in. I'm still a little tired, and I cough occasionally.",
+        "Good.",
+    ]
+    assert roles == {"pdf_test:0": "clinician", "pdf_test:1": "patient"}
+
+
+def test_short_opening_turns_are_kept_without_a_header():
+    segments, _ = parse_transcript(["Clinician: Hello.", "Patient: Hi there."], "pdf_test")
+    assert [s.text for s in segments] == ["Hello.", "Hi there."]

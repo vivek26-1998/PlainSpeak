@@ -7,7 +7,8 @@ The expected shape is one spoken turn per line, each starting with a speaker lab
 
 Leading timestamps are optional and become `start_ms`. A line without a label continues
 the previous turn, which is how wrapped paragraphs survive PDF extraction. Lines before
-the first labelled turn (titles, headers) are ignored.
+the first labelled turn (titles) are ignored, as is a leading header block of document
+fields (`Date:`, `Purpose:`, `Note:` ...) together with the participant lines inside it.
 
 Roles are inferred only from unambiguous labels; anything else stays `unknown` so the
 clinician confirms it in the same mapping UI used for live capture.
@@ -34,6 +35,16 @@ _CLINICIAN_WORDS = frozenset(
     {"clinician", "doctor", "dr", "physician", "consultant", "nurse", "gp", "arzt", "arztin"}
 )
 _PATIENT_WORDS = frozenset({"patient", "patientin"})
+# Document fields, not people. "Date: 24 October 2026" must not become a speaker.
+_METADATA_LABELS = frozenset(
+    {
+        "date", "time", "duration", "purpose", "note", "notes", "title", "subject",
+        "location", "setting", "language", "reference", "case", "case id", "encounter",
+        "hospital", "clinic", "department", "ward", "session", "visit", "recorded",
+        "recording", "transcript", "transcribed by", "participants", "consent",
+    }
+)  # fmt: skip
+HEADER_FIELD_WORDS = 6  # "Patient: Anna Müller" in a header block, not a spoken turn
 
 
 class TranscriptFormatError(ValueError):
@@ -72,6 +83,35 @@ def _role_for(label: str) -> SpeakerRole:
     return "unknown"
 
 
+def _is_metadata(speaker: tuple[str, str] | None) -> bool:
+    return speaker is not None and speaker[0].casefold() in _METADATA_LABELS
+
+
+def _header_length(lines: Sequence[str]) -> int:
+    """Lines in a leading header block such as::
+
+        Patient: Anna Müller
+        Clinician: Dr. Weber
+        Date: 24 October 2026
+
+    The block is recognised by its metadata fields; the short participant lines inside it
+    name the people rather than record what they said, so they are dropped with it.
+    """
+    end = 0
+    seen_field = False
+    for index, line in enumerate(lines):
+        speaker = _split_speaker(_split_timestamp(line.strip())[0])
+        if _is_metadata(speaker):
+            end = index + 1
+        elif speaker is not None and len(speaker[1].split()) <= HEADER_FIELD_WORDS:
+            seen_field = True
+        elif speaker is None and not seen_field:
+            continue  # a title above the header
+        else:
+            break  # a real spoken turn, or a wrapped line continuing one
+    return end
+
+
 def parse_transcript(
     lines: Sequence[str],
     session_id: str,
@@ -79,9 +119,11 @@ def parse_transcript(
     """Turn transcript lines into segments plus the speaker roles read from their labels."""
     turns: list[tuple[str, str, int | None]] = []
     labels: list[str] = []  # casefolded labels, in order of first appearance
-    for line in lines:
+    for line in lines[_header_length(lines) :]:
         rest, start_ms = _split_timestamp(line.strip())
         speaker = _split_speaker(rest)
+        if _is_metadata(speaker):
+            continue  # a stray document field is never a speaker
         if speaker is None:
             if turns:
                 label, text, first_ms = turns[-1]

@@ -9,6 +9,14 @@ from plainspeak.contracts import Passage
 
 _BLANK_LINE = re.compile(r"\n\s*\n")
 _WHITESPACE = re.compile(r"\s+")
+# Matched against layout lines, where wide gaps separate table columns:
+#   "Patient: Alex Example (fictional)."  /  "Patient name: Alex Example, age 76"
+#   "   Patient          Anna Müller          Discharge date    24 October 2026"
+_PATIENT_NAME = re.compile(
+    r"(?:\bPatient(?:\s+name)?\s*:|^\s*Patient(?:\s+name)?\s{2,})\s*"
+    r"([^\s(),.;:][^(),.;:]*?)\s*(?=[(),.;]|\s{2,}|\s\w+\s*:|$)",
+    re.IGNORECASE,
+)
 
 
 class NoTextError(ValueError):
@@ -32,6 +40,21 @@ def extract_lines(pdf_path: Path) -> list[str]:
     if not lines:
         raise NoTextError("No extractable text found in the PDF.")
     return lines
+
+
+def find_patient_name(lines: list[str]) -> str | None:
+    """The patient name from a "Patient" label or table row, if present."""
+    for line in lines:
+        if match := _PATIENT_NAME.search(line):
+            return match.group(1)
+    return None
+
+
+def extract_patient_name(pdf_path: Path) -> str | None:
+    reader = PdfReader(pdf_path)
+    return find_patient_name(
+        [line for page in reader.pages for line in _page_text(page).splitlines()]
+    )
 
 
 def extract_passages(pdf_path: Path) -> list[Passage]:

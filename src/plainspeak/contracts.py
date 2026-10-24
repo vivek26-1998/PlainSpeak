@@ -142,6 +142,7 @@ class UnresolvedQuestion(Contract):
 
 class Case(Contract):
     case_id: str
+    patient_name: str | None = None  # read from the discharge document on upload
     workflow_state: WorkflowState = "awaiting_review"
     sources: list[Source] = Field(default_factory=list)
     draft_summary: DraftSummary | None = None
