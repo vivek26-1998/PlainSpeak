@@ -14,7 +14,6 @@ fixture; do not upload real patient records.
 - [Technical architecture](docs/ARCHITECTURE.md): modules, data flow, case lifecycle, evidence model, agent boundaries, persistence, and trade-offs.
 - [APIs, frameworks, and tools inventory](docs/TOOLS.md): backend/frontend libraries, external providers, environment variables, and developer tooling.
 - [Security, privacy, and limitations](docs/SECURITY-AND-LIMITATIONS.md): current safeguards, known gaps, and prerequisites for any future real-world deployment.
-- [Team handoff](PlainSpeak-MVP-Team-Handoff.md): scope, ownership, and demo script.
 - [Original architecture notes](PlainSpeak-architecture.md): additional diagrams and design notes.
 
 While the server is running, FastAPI provides an interactive API explorer at `http://127.0.0.1:3001/docs` and the OpenAPI schema at `http://127.0.0.1:3001/openapi.json`.
