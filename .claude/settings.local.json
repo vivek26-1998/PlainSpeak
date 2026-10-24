@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($c = Invoke-RestMethod -Uri http://127.0.0.1:3001/api/cases -Method Post -ContentType 'application/json' -Body '{\"reset\":true}'; \"CASE id=$\\($c.id\\)\"; $c | ConvertTo-Json -Depth 3 -Compress)",
+      "PowerShell($r = & curl.exe -s -X POST \"http://127.0.0.1:3001/api/cases/demo-patient/document\" -F \"file=@fixtures/discharge.pdf;type=application/pdf\"; $j = $r | ConvertFrom-Json; \"sources=$\\($j.case.sources.Count\\) state=$\\($j.case.workflowState\\) rev=$\\($j.case.inputRevision\\)\"; $j.case.sources | ConvertTo-Json -Depth 3 -Compress)",
+      "PowerShell($t = & curl.exe -s -o nul -w \"%{http_code}\" -X POST \"http://127.0.0.1:3001/api/voice/token\"; \"voice/token -> $t\"; $s = & curl.exe -s -w \"`nHTTP %{http_code}\" -X POST \"http://127.0.0.1:3001/api/cases/demo-patient/summary\"; \"summary -> $s\")",
+      "PowerShell('app.js','consultation.js','styles.css' | ForEach-Object { $r = Invoke-WebRequest \"http://127.0.0.1:3001/$_\" -UseBasicParsing; \"$_ -> $\\($r.StatusCode\\) $\\($r.RawContentLength\\) bytes\" }; $g = Invoke-RestMethod \"http://127.0.0.1:3001/api/cases/demo-patient\"; \"GET case -> state=$\\($g.case.workflowState\\) sources=$\\($g.case.sources.Count\\)\")",
+      "PowerShell(python -m uv run python scripts/_check_transcript.py)",
+      "PowerShell(Remove-Item scripts/_check_transcript.py -Confirm:$false)",
+      "Bash(python -)",
+      "PowerShell(python -m uv run pytest -q)",
+      "PowerShell(python -m uv run ruff format .)",
+      "PowerShell(python -m uv run ruff check .)",
+      "PowerShell(Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } | Stop-Process -Force -Confirm:$false; Start-Sleep -Milliseconds 800; \"stopped\")",
+      "PowerShell(python -m uv run plainspeak)",
+      "PowerShell(powershell -NoProfile -File scripts/_smoke.ps1)",
+      "PowerShell(Remove-Item scripts/_smoke.ps1 -Confirm:$false)",
+      "PowerShell(python -m uv run ruff format --check .)",
+      "PowerShell(node --test tests/consultation_frontend.test.cjs 2>&1)",
+      "Bash(python -c ' *)",
+      "PowerShell(Set-Location D:\\\\Downloads\\\\PlainsSpeak-main; Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } | Stop-Process -Force -Confirm:$false; Start-Sleep -Milliseconds 800; \"stopped\")",
+      "PowerShell(Set-Location D:\\\\Downloads\\\\PlainsSpeak-main; powershell -NoProfile -File scripts\\\\_verify.ps1)",
+      "PowerShell(Set-Location D:\\\\Downloads\\\\PlainsSpeak-main; $r = & curl.exe -s -w \"`nHTTP %{http_code}\" -X POST \"http://127.0.0.1:3001/api/cases/demo-patient/document\" -F \"file=@data/uploads/demo-patient_discharge_001.pdf;type=application/pdf\"; $r.Substring\\(0, [Math]::Min\\(300, $r.Length\\)\\); \"...\"; $r.Substring\\($r.Length - 80\\))",
+      "PowerShell(Set-Location D:\\\\Downloads\\\\PlainsSpeak-main; $out = & curl.exe -s -o \"$env:TEMP\\\\resp.json\" -w \"%{http_code}\" -X POST \"http://127.0.0.1:3001/api/cases/demo-patient/document\" -F \"file=@data/uploads/demo-patient_discharge_001.pdf;type=application/pdf\"; \"HTTP $out\"; $j = Get-Content \"$env:TEMP\\\\resp.json\" -Raw | ConvertFrom-Json; \"rev=$\\($j.case.inputRevision\\) docs=$\\(\\($j.case.sources | Where-Object {$_.kind -eq 'document'}\\).Count\\) file=$\\(\\($j.case.sources | Where-Object {$_.kind -eq 'document'}\\).filename\\)\")",
+      "PowerShell(Set-Location D:\\\\Downloads\\\\PlainsSpeak-main; Get-Process -Name python -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } | Stop-Process -Force -Confirm:$false; Start-Sleep -Milliseconds 700; Start-Process -FilePath \"python\" -ArgumentList \"-m\",\"uv\",\"run\",\"plainspeak\" -WorkingDirectory \"D:\\\\Downloads\\\\PlainsSpeak-main\" -WindowStyle Hidden; Start-Sleep -Seconds 6; \\(Invoke-WebRequest \"http://127.0.0.1:3001/\" -UseBasicParsing\\).StatusCode)"
+    ]
+  }
+}

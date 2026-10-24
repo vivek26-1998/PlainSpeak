@@ -82,8 +82,9 @@ function renderConsultation() {
     const role = roles[key] ?? "unknown";
     const voice = keys.indexOf(key) + 1;
     const timing = s.startMs == null ? "" : ` · ${(s.startMs / 1000).toFixed(1)}s`;
-    const manual = s.sessionId.startsWith("manual_") ? " · manually entered" : "";
-    return `<div class="transcript-line ${esc(role)}"><strong>${role === "unknown" ? `Voice ${voice} (unconfirmed)` : esc(role)}</strong><span class="muted">${timing}${manual}</span><div>${esc(s.text)}</div></div>`;
+    const origin = s.sessionId.startsWith("manual_") ? " · manually entered"
+      : s.sessionId.startsWith("pdf_") ? " · imported from PDF" : "";
+    return `<div class="transcript-line ${esc(role)}"><strong>${role === "unknown" ? `Voice ${voice} (unconfirmed)` : esc(role)}</strong><span class="muted">${timing}${origin}</span><div>${esc(s.text)}</div></div>`;
   }).join("") || '<p class="muted">No consultation transcript saved yet.</p>';
   $("#consult-transcript").scrollTop = $("#consult-transcript").scrollHeight;
   renderConsultationControls();
@@ -93,7 +94,7 @@ function renderConsultationControls() {
   const busy = consultation.active || consultation.starting || consultation.stopping;
   $("#btn-consult-start").disabled = busy;
   $("#btn-consult-stop").disabled = !consultation.active || consultation.stopping;
-  ["#btn-reset", "#btn-create", "#btn-draft", "#btn-manual-transcript", "#btn-upload"].forEach((id) => {
+  ["#btn-reset", "#btn-draft", "#btn-manual-transcript", "#btn-transcript-pdf", "#btn-upload"].forEach((id) => {
     $(id).disabled = busy || consultation.pending.size > 0;
   });
   $("#consult-consent").disabled = busy;
@@ -238,6 +239,26 @@ $("#btn-manual-transcript").addEventListener("click", (event) => run(event.targe
     speakerId, text: input.value.trim(), startMs: null, durationMs: null,
   }, { [`${manualSessionId}:${speakerId}`]: speakerId === 0 ? "clinician" : "patient" });
   input.value = "";
+}));
+$("#btn-transcript-pdf").addEventListener("click", (event) => run(event.target, async () => {
+  const file = $("#transcript-file").files[0];
+  if (!file) throw new Error("Choose a transcript PDF first.");
+  if (!$("#consult-consent").checked) throw new Error("Confirm participant consent first.");
+  const before = new Set((caseView?.case.transcriptSegments ?? []).map((s) => s.id));
+  const form = new FormData();
+  form.append("file", file);
+  const view = await api(`/api/cases/${CASE_ID}/transcript/document`, { method: "POST", body: form });
+  setCase(view);
+  const segments = view.case.transcriptSegments ?? [];
+  // Compare ids, not counts: a replacement can be the same length as what it replaced.
+  const fresh = segments.filter((s) => !before.has(s.id)).length;
+  const dropped = before.size - segments.filter((s) => before.has(s.id)).length;
+  // Unconfirmed speakers are absent from speakerRoles, so count the segments themselves.
+  const voices = new Set(segments.map((s) => `${s.sessionId}:${s.speakerId ?? "unknown"}`)).size;
+  const replaced = dropped ? `, replacing ${dropped} previously captured line(s)` : "";
+  $("#consult-status").textContent = fresh
+    ? `Imported ${fresh} line(s) from ${file.name} across ${voices} voice(s)${replaced}. Confirm each voice before reviewing the draft.`
+    : `${file.name} was already imported; nothing changed.`;
 }));
 window.addEventListener("beforeunload", (event) => {
   if (consultation.active || consultation.starting || consultation.stopping || consultation.pending.size) {

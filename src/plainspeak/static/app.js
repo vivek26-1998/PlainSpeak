@@ -68,14 +68,53 @@ function taskInstruction(taskId) {
   return caseView?.case.careTasks.find((t) => t.id === taskId)?.instruction ?? taskId;
 }
 
+// ---------- care journey ----------
+
+const JOURNEY = [
+  { title: "Consultation", detail: "Capture what was said" },
+  { title: "Clinician review", detail: "Approve the instructions" },
+  { title: "At-home support", detail: "Ask questions, track tasks" },
+];
+
+function approvedVersion() {
+  const c = caseView.case;
+  return c.summaryVersions.find((v) => v.version === c.approvedSummaryVersion);
+}
+
+/** True once an approval covers the current inputs, which is what unlocks the at-home view. */
+function postCareOpen() {
+  const c = caseView.case;
+  const approved = approvedVersion();
+  return !!approved && c.workflowState !== "awaiting_review" && approved.inputRevision === c.inputRevision;
+}
+
+function journeyStage() {
+  if (postCareOpen()) return 3;                                      // approved -> at-home support
+  // Review starts when the discharge document lands, not when the consultation is captured.
+  return caseView.case.sources.some((s) => s.kind === "document") ? 2 : 1;
+}
+
+function renderJourney() {
+  const stage = journeyStage();
+  $("#journey-steps").innerHTML = JOURNEY.map((step, i) => {
+    const n = i + 1;
+    const state = n < stage ? "done" : n === stage ? "active" : "";
+    return `<div class="journey-step">
+      <span class="journey-marker ${state}">${n < stage ? "✓" : n}</span>
+      <div><strong>${esc(step.title)}</strong><small>${esc(step.detail)}</small></div>
+      ${n === stage ? `<span class="journey-status">CURRENT</span>` : ""}
+    </div>`;
+  }).join("");
+  document.querySelectorAll(".workflow-step").forEach((el, i) => {
+    el.classList.toggle("active", i === stage - 1);
+  });
+}
+
 // ---------- rendering ----------
 
 function setCase(view) {
   caseView = view;
   const c = view.case;
-  $("#state").textContent =
-    `Case ${c.caseId} · ${c.workflowState}` +
-    (c.approvedSummaryVersion ? ` · approved v${c.approvedSummaryVersion}` : "");
   if (c.draftSummary) {
     if (!draftEdit || draftEdit.createdAt !== c.draftSummary.createdAt) {
       draftEdit = structuredClone(c.draftSummary);
@@ -83,6 +122,7 @@ function setCase(view) {
   } else {
     draftEdit = null;
   }
+  renderJourney();
   renderDoctor();
   renderCaregiver();
   renderReport();
@@ -91,11 +131,6 @@ function setCase(view) {
 
 function renderDoctor() {
   const c = caseView.case;
-  $("#sources").innerHTML = c.sources.map((s) => `
-    <h3>${esc(s.id)} · ${esc(s.filename)}</h3>
-    ${s.passages.map((p) => `<div class="passage"><span class="pid">${esc(p.id)}</span>${esc(p.text)}</div>`).join("")}
-  `).join("") || `<p class="muted">No document uploaded yet.</p>`;
-
   const draft = $("#draft");
   if (!draftEdit) {
     draft.innerHTML = `<p class="muted">${c.sources.length ? "Generate a draft to review." : "Upload a document first."}</p>`;
@@ -113,12 +148,8 @@ function renderDoctor() {
               `<option ${p === t.responsibleParty ? "selected" : ""}>${p}</option>`).join("")}
           </select>
           <button class="danger" data-remove="${i}">Remove</button>
-          <div class="refs">${refChips(t.sourceRefs) || `<span class="muted">No source reference (clinician-authored)</span>`}</div>
         </div>`).join("")}
       <button id="btn-add-task" class="secondary">Add task</button>
-      ${draftEdit.missingInformation.length ? `
-        <h3>Missing or ambiguous information flagged by Claude</h3>
-        <ul class="plain">${draftEdit.missingInformation.map((m) => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}
       <h3>Approve</h3>
       <div class="row">
         <input type="text" id="approved-by" value="Dr. Demo (fictional)" style="max-width:260px">
@@ -145,12 +176,12 @@ function renderDoctor() {
     $("#btn-approve").addEventListener("click", (e) => run(e.target, approveDraft));
   }
 
-  const approved = c.summaryVersions.find((v) => v.version === c.approvedSummaryVersion);
+  const approved = approvedVersion();
   $("#approved").innerHTML = approved ? `
     <p class="muted">Version ${approved.version} approved by ${esc(approved.approvedBy)} at ${esc(approved.approvedAt)}
       ${c.summaryVersions.length > 1 ? ` · ${c.summaryVersions.length} versions preserved` : ""}</p>
     <p>${esc(approved.summary)}</p>
-    <ul class="plain">${approved.careTasks.map((t) => `<li>${esc(t.instruction)} ${refChips(t.sourceRefs)}</li>`).join("")}</ul>
+    <ul class="plain">${approved.careTasks.map((t) => `<li>${esc(t.instruction)}</li>`).join("")}</ul>
   ` : `<p class="muted">Nothing approved yet.</p>`;
 }
 
@@ -171,9 +202,7 @@ function renderChecklist() {
 
 function renderCaregiver() {
   const c = caseView.case;
-  const approved = c.summaryVersions.find((v) => v.version === c.approvedSummaryVersion);
-  const open = approved && c.workflowState !== "awaiting_review" &&
-    approved.inputRevision === c.inputRevision;
+  const open = postCareOpen();
   $("#cg-locked").hidden = open;
   $("#cg-body").hidden = !open;
   if (!open) return;
@@ -215,7 +244,7 @@ function renderCaregiver() {
 
 function renderReport() {
   const c = caseView.case;
-  const approved = c.summaryVersions.find((v) => v.version === c.approvedSummaryVersion);
+  const approved = approvedVersion();
   if (!approved) {
     $("#report").innerHTML = `<h2>Central report</h2><p class="muted">No approved instructions yet.</p>`;
     return;
@@ -375,16 +404,22 @@ document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click",
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("active", p.id === `tab-${tab.dataset.tab}`));
 }));
 
-$("#btn-create").addEventListener("click", (e) => run(e.target, () => loadCase(false)));
 $("#btn-reset").addEventListener("click", (e) => {
   if (confirm("Reset the demo case? Saved data for this case will be cleared.")) run(e.target, () => loadCase(true));
 });
 $("#btn-upload").addEventListener("click", (e) => run(e.target, async () => {
   const file = $("#file").files[0];
   if (!file) throw new Error("Choose a PDF first.");
+  const previous = caseView?.case.sources.find((s) => s.kind === "document");
   const form = new FormData();
   form.append("file", file);
-  setCase(await api(`/api/cases/${CASE_ID}/document`, { method: "POST", body: form }));
+  const view = await api(`/api/cases/${CASE_ID}/document`, { method: "POST", body: form });
+  setCase(view);
+  const current = view.case.sources.find((s) => s.kind === "document");
+  const replaced = previous && previous.filename !== current.filename
+    ? ` It replaced ${previous.filename}.` : "";
+  $("#upload-status").textContent =
+    `Loaded ${current.filename} · ${current.passages.length} passage(s).${replaced}`;
 }));
 $("#btn-draft").addEventListener("click", (e) => run(e.target, async () => {
   e.target.textContent = "Drafting…";
@@ -408,4 +443,5 @@ $("#btn-mic").addEventListener("click", (e) => {
   });
 });
 
-run(null, () => loadCase(false));
+// Each page load starts a clean demo: no approved instructions, journey back at Consultation.
+run(null, () => loadCase(true));

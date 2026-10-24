@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 WorkflowState = Literal["awaiting_review", "approved", "post_care_active"]
+SpeakerRole = Literal["clinician", "patient", "unknown"]
 ResponsibleParty = Literal["patient", "caregiver", "care_team", "unspecified"]
 ReplyKind = Literal["answer", "clarification", "unresolved", "update_confirmation"]
 ReportedStatus = Literal["done", "in_progress", "blocked"]
@@ -60,9 +61,7 @@ class TranscriptSegment(Contract):
 
 class TranscriptRequest(Contract):
     segments: list[TranscriptSegment] = Field(default_factory=list, max_length=100)
-    speaker_roles: dict[str, Literal["clinician", "patient", "unknown"]] = Field(
-        default_factory=dict, max_length=100
-    )
+    speaker_roles: dict[str, SpeakerRole] = Field(default_factory=dict, max_length=100)
 
 
 class CareTask(Contract):

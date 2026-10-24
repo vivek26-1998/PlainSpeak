@@ -9,7 +9,22 @@ from fastapi.testclient import TestClient
 from plainspeak.config import Settings
 from plainspeak.main import create_app
 
-FIXTURE_PDF = Path(__file__).resolve().parent.parent / "fixtures" / "discharge.pdf"
+FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
+FIXTURE_PDF = FIXTURES / "discharge.pdf"
+TRANSCRIPT_PDF = FIXTURES / "consultation-transcript.pdf"
+
+
+def pdf_with(paragraphs: list[str]) -> bytes:
+    """A minimal text PDF, for shapes the committed fixtures do not cover."""
+    from fpdf import FPDF
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=11)
+    for paragraph in paragraphs:
+        pdf.multi_cell(0, 6, paragraph)
+        pdf.ln(1)  # multi_cell leaves the cursor mid-line; ln() returns it to the margin
+    return bytes(pdf.output())
 
 
 def text_response(data: dict[str, Any]) -> SimpleNamespace:

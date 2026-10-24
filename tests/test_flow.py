@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from plainspeak.pdf_extract import extract_passages
-from tests.conftest import FIXTURE_PDF, FakeLLM, text_response, tool_response
+from tests.conftest import FIXTURE_PDF, FakeLLM, pdf_with, text_response, tool_response
 
 CASE = "/api/cases/demo-patient"
 REF_FOLLOW_UP = {"sourceId": "discharge_001", "passageId": "page_1_p3"}
@@ -178,6 +178,64 @@ def test_new_upload_keeps_previous_approval(client: TestClient, llm: FakeLLM):
     assert case["workflowState"] == "awaiting_review"
     assert case["approvedSummaryVersion"] == 1
     assert len(case["summaryVersions"]) == 1
+    # The replaced document stays available as approved evidence.
+    assert case["summaryVersions"][0]["sourcesSnapshot"][0]["filename"] == "discharge.pdf"
+
+
+def test_uploading_a_document_replaces_the_previous_one(client: TestClient, tmp_path):
+    """A second patient's discharge letter must not be drafted alongside the first."""
+    client.post("/api/cases", json={"reset": True})
+    with FIXTURE_PDF.open("rb") as f:
+        client.post(f"{CASE}/document", files={"file": ("discharge.pdf", f, "application/pdf")})
+
+    other = tmp_path / "other-patient.pdf"
+    other.write_bytes(pdf_with(["Patient: Jordan Placeholder (fictional), discharged today."]))
+    with other.open("rb") as f:
+        case = client.post(
+            f"{CASE}/document", files={"file": ("other-patient.pdf", f, "application/pdf")}
+        ).json()["case"]
+
+    documents = [s for s in case["sources"] if s["kind"] == "document"]
+    assert len(documents) == 1
+    assert documents[0]["id"] == "discharge_001"
+    assert documents[0]["filename"] == "other-patient.pdf"
+    assert "Jordan Placeholder" in documents[0]["passages"][0]["text"]
+    assert not any("Alex Example" in p["text"] for p in documents[0]["passages"])
+
+
+def test_reuploading_the_same_document_does_not_invalidate_the_draft(
+    client: TestClient,
+    llm: FakeLLM,
+):
+    client.post("/api/cases", json={"reset": True})
+    for _ in range(2):
+        with FIXTURE_PDF.open("rb") as f:
+            result = client.post(
+                f"{CASE}/document", files={"file": ("discharge.pdf", f, "application/pdf")}
+            )
+        assert result.status_code == 200, result.text
+    assert result.json()["case"]["inputRevision"] == 1
+
+    llm.queue(text_response(DRAFT))
+    assert client.post(f"{CASE}/summary").status_code == 200
+    with FIXTURE_PDF.open("rb") as f:
+        case = client.post(
+            f"{CASE}/document", files={"file": ("discharge.pdf", f, "application/pdf")}
+        ).json()["case"]
+    assert case["draftSummary"] is not None
+    assert case["inputRevision"] == 1
+
+
+def test_a_document_upload_leaves_the_consultation_transcript_alone(client: TestClient):
+    client.post("/api/cases", json={"reset": True})
+    segment = {"id": "seg-1", "sessionId": "s-1", "speakerId": 0, "text": "Bring your list."}
+    client.post(f"{CASE}/transcript", json={"segments": [segment]})
+    with FIXTURE_PDF.open("rb") as f:
+        case = client.post(
+            f"{CASE}/document", files={"file": ("discharge.pdf", f, "application/pdf")}
+        ).json()["case"]
+    assert {s["kind"] for s in case["sources"]} == {"consultation", "document"}
+    assert len(case["transcriptSegments"]) == 1
 
 
 def test_approve_rejects_unknown_reference(client: TestClient, llm: FakeLLM):

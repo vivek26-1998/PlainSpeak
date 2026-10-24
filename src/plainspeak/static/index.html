@@ -3,116 +3,104 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PlainSpeak MVP</title>
+  <meta name="theme-color" content="#101b2d">
+  <title>PlainSpeak Lab — Care, made clearer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-  <header>
-    <h1>PlainSpeak</h1>
-    <span class="banner">Prototype with synthetic data only. Not for real patient records or clinical use.</span>
-    <span id="state" class="state"></span>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="PlainSpeak Lab home">
+        <span class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M6 8.5A4.5 4.5 0 0 1 10.5 4h11A4.5 4.5 0 0 1 26 8.5v8a4.5 4.5 0 0 1-4.5 4.5H15l-6.5 5v-5.4A4.5 4.5 0 0 1 6 16.5z"/><path d="M11 12h10M11 16h6"/></svg></span>
+        <span><strong>PlainSpeak</strong><small>CARE CLARITY LAB</small></span>
+      </a>
+      <div class="workspace-label">WORKSPACE</div>
+      <div class="case-card">
+        <span class="case-icon">✳</span><div><strong>Anna’s care journey</strong><small>DEMO PATIENT · PS-2048</small></div><span class="live-dot"></span>
+      </div>
+      <div class="sidebar-label">YOUR WORKFLOW</div>
+      <nav class="side-nav" aria-label="Main navigation">
+        <button class="tab active" data-tab="doctor"><span class="nav-icon">◉</span><span>Care @ Clinic</span><span class="nav-count">01</span></button>
+        <button class="tab" data-tab="caregiver"><span class="nav-icon">♡</span><span>Care @ Home</span><span class="nav-count">02</span></button>
+        <button class="tab" data-tab="report"><span class="nav-icon">▤</span><span>Care Overview</span><span class="nav-count">03</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="privacy-card"><span class="privacy-icon">✦</span><div><strong>People first. Always.</strong><p>Instructions stay grounded in the approved care plan. Uncertainty is made visible.</p></div></div>
+        <div class="profile-row"><div class="avatar">PL</div><div><strong>PlainSpeak Lab</strong><small>Prototype workspace</small></div><span class="profile-dots">···</span></div>
+      </div>
+    </aside>
 
-  <nav>
-    <button class="tab active" data-tab="doctor">Doctor view</button>
-    <button class="tab" data-tab="caregiver">Caregiver view</button>
-    <button class="tab" data-tab="report">Central report</button>
-    <span class="role-note">Demo role switch is a prototype convenience, not access control.</span>
-  </nav>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>Workspace</span><b>/</b><strong id="crumb-current">Care @ Clinic</strong></div>
+        <div class="topbar-right"><span class="secure-label"><span class="secure-dot"></span> DEMO ENVIRONMENT</span></div>
+      </header>
+      <div class="prototype-banner"><span class="banner-symbol">!</span><span><strong>Prototype using synthetic data only.</strong> Not for real patient records or clinical use.</span><span class="banner-end">PRIVATE DEMO <span>↗</span></span></div>
+      <div id="error" class="error" hidden></div>
 
-  <div id="error" class="error" hidden></div>
+      <main>
+        <section class="page-intro">
+          <div><div class="eyebrow"><span class="eyebrow-line"></span> BETTER UNDERSTANDING. BETTER FOLLOW-THROUGH.</div><h1 id="page-title">Care, made <em>clearer.</em></h1><p class="page-subtitle">From the consultation room to home, make every next step easier to understand.</p></div>
+          <div class="intro-decoration" aria-hidden="true"><div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><span>✳</span></div>
+        </section>
 
-  <main>
-    <!-- Doctor -->
-    <section id="tab-doctor" class="panel active">
-      <div class="card">
-        <h2>1. Consultation and case</h2>
-        <div class="row">
-          <button id="btn-create">Load demo case</button>
-          <button id="btn-reset" class="secondary">Reset demo case</button>
-        </div>
-        <p class="muted">Capture the clinician and patient conversation first, then add the discharge document. No raw audio is stored by this app.</p>
-        <label><input type="checkbox" id="consult-consent"> Both participants agree to this fictional consultation being transcribed.</label>
-        <div class="row" style="margin-top:12px">
-          <select id="consult-language" style="width:auto" aria-label="Consultation language">
-            <option value="en">English</option>
-            <option value="de">German</option>
-            <option value="de,en">German and English</option>
-          </select>
-          <button id="btn-consult-start">Start consultation</button>
-          <button id="btn-consult-stop" class="secondary" disabled>End and save consultation</button>
-          <span id="consult-status" class="muted" role="status"></span>
-        </div>
-        <div id="consult-interim" class="interim" aria-live="polite"></div>
-        <div id="consult-speakers"></div>
-        <div id="consult-transcript" class="consult-transcript" aria-live="polite"></div>
-        <div id="consult-recovery"></div>
-        <details>
-          <summary>Manual transcript fallback</summary>
-          <p class="muted">Use only if live audio is unavailable. These lines are labelled as manually entered.</p>
-          <div class="row">
-            <select id="manual-speaker" style="width:auto" aria-label="Manual speaker"><option value="0">Clinician</option><option value="1">Patient</option></select>
-            <input id="manual-transcript" type="text" placeholder="Enter one spoken line" style="flex:1;width:auto">
-            <button id="btn-manual-transcript" class="secondary">Save line</button>
+        <section id="tab-doctor" class="panel active">
+          <div class="workflow-strip"><div class="workflow-step active"><span>01</span><div><strong>Capture</strong><small>Conversation + document</small></div></div><span class="step-connector"></span><div class="workflow-step"><span>02</span><div><strong>Review</strong><small>Check what matters</small></div></div><span class="step-connector"></span><div class="workflow-step"><span>03</span><div><strong>Approve</strong><small>Clinician stays in control</small></div></div></div>
+          <div class="section-heading"><div><div class="eyebrow">CARE TEAM WORKSPACE</div><h2>Build a shared understanding</h2><p>Bring spoken instructions and the written plan together before care continues at home.</p></div><button id="btn-reset" class="button-quiet"><span>↻</span> Reset demo</button></div>
+          <div class="content-grid">
+            <div class="primary-column">
+              <article class="card card-featured">
+                <div class="card-heading"><div class="step-icon violet">01</div><div class="card-heading-copy"><div class="card-kicker">LIVE CONSULTATION</div><h3>Capture the conversation</h3><p>Transcribe the fictional clinician–patient discussion with consent.</p></div><span class="feature-pill"><span class="pulse-dot"></span> VOICE INPUT</span></div>
+                <label class="consent-line"><input type="checkbox" id="consult-consent"><span class="custom-check"></span><span>Both participants consent to transcription of this fictional consultation.</span></label>
+                <div class="control-row"><label class="field-label" for="consult-language">LANGUAGE</label><select id="consult-language" aria-label="Consultation language"><option value="en">English</option><option value="de">German</option><option value="de,en">German + English</option></select><span class="control-spacer"></span><button id="btn-consult-start" class="button-primary"><span>◉</span> Start consultation</button><button id="btn-consult-stop" class="button-secondary" disabled>End &amp; save</button></div>
+                <div id="consult-status" class="muted status-line" role="status">Ready when you are.</div>
+                <div id="consult-interim" class="interim" aria-live="polite"></div><div id="consult-speakers"></div><div id="consult-transcript" class="consult-transcript" aria-live="polite"></div><div id="consult-recovery"></div>
+                <details class="fallback-details"><summary>Upload a written transcript PDF</summary><p class="muted">Import a transcript that was written up elsewhere instead of recording it here. Start each turn with a speaker label such as <code>Clinician:</code>, <code>Patient:</code> or <code>Speaker 1:</code>. A leading timestamp like <code>[00:01:12]</code> is kept, wrapped lines continue the turn above, and a title before the first labelled turn is ignored. Imported voices still need confirming below.</p><div class="upload-zone"><div class="upload-icon">↑</div><div class="upload-copy"><strong>Choose a transcript PDF</strong><span>PDF document · Synthetic data only</span></div><input type="file" id="transcript-file" accept="application/pdf"><button id="btn-transcript-pdf" class="button-secondary">Import transcript</button></div></details>
+                <details class="fallback-details"><summary>Use manual transcript fallback</summary><p class="muted">If live audio is unavailable, enter one line at a time. Lines are labelled as manually entered.</p><div class="row"><select id="manual-speaker" aria-label="Manual speaker"><option value="0">Clinician</option><option value="1">Patient</option></select><input id="manual-transcript" type="text" placeholder="Enter one spoken line"><button id="btn-manual-transcript" class="button-secondary">Save line</button></div></details>
+              </article>
+              <article class="card">
+                <div class="card-heading"><div class="step-icon mint">02</div><div class="card-heading-copy"><div class="card-kicker">SOURCE MATERIAL</div><h3>Add the discharge document</h3><p>Use the written instructions as the source of truth.</p></div><span class="card-illustration">▤</span></div>
+                <div class="upload-zone"><div class="upload-icon">↑</div><div class="upload-copy"><strong>Choose a discharge PDF</strong><span>PDF document · Synthetic data only</span></div><input type="file" id="file" accept="application/pdf"><button id="btn-upload" class="button-secondary">Upload PDF</button></div>
+                <div id="upload-status" class="muted status-line" role="status">One discharge document per case. Uploading replaces the previous one.</div>
+              </article>
+              <article class="card">
+                <div class="card-heading"><div class="step-icon amber">03</div><div class="card-heading-copy"><div class="card-kicker">AI-ASSISTED REVIEW</div><h3>Review the draft together</h3><p>Claude organizes instructions into a reviewable draft. A clinician must approve it.</p></div></div>
+                <div class="ai-note"><span>✦</span><p><strong>Human review stays in control.</strong> AI-generated instructions are drafts, not medical decisions.</p></div>
+                <button id="btn-draft" class="button-primary"><span>✦</span> Generate draft with Claude</button><div id="draft" class="draft-content"><p class="empty-state">Upload a document and save a consultation to prepare a draft.</p></div>
+              </article>
+              <article class="card approved-card"><div class="card-heading"><div class="step-icon green">✓</div><div class="card-heading-copy"><div class="card-kicker">CLINICIAN-VERIFIED</div><h3>Approved care instructions</h3><p>Only the current approved version unlocks the at-home experience.</p></div></div><div id="approved"><p class="empty-state">Nothing approved yet.</p></div></article>
+            </div>
+            <aside class="secondary-column">
+              <article class="side-card journey-card"><div class="side-card-title"><span>✳</span><h3>Anna’s journey</h3></div><div class="journey-person"><div class="person-avatar">A</div><div><strong>Anna Miller</strong><small>Case PS-2048</small></div></div><div class="journey-divider"></div><div id="journey-steps"></div></article>
+              <article class="side-card principles-card"><div class="side-card-title"><span>✧</span><h3>Designed for trust</h3></div><div class="principle"><span class="principle-icon">⌕</span><div><strong>Evidence-linked</strong><p>Answers point back to source passages.</p></div></div><div class="principle"><span class="principle-icon">✓</span><div><strong>Human-approved</strong><p>Care instructions need clinician approval.</p></div></div><div class="principle"><span class="principle-icon">↗</span><div><strong>Honest about gaps</strong><p>Unanswered questions stay unresolved.</p></div></div></article>
+              <div class="quote-card"><span class="quote-mark">“</span><p>Understanding care shouldn’t end when the appointment does.</p><span>THE PLAINSPEAK PRINCIPLE</span></div>
+            </aside>
           </div>
-        </details>
-      </div>
+        </section>
 
-      <div class="card">
-        <h2>2. Supporting medical document</h2>
-        <div class="row">
-          <input type="file" id="file" accept="application/pdf">
-          <button id="btn-upload">Upload PDF</button>
-        </div>
-        <div id="sources"></div>
-      </div>
+        <section id="tab-caregiver" class="panel">
+          <div class="section-heading"><div><div class="eyebrow">AT-HOME SUPPORT</div><h2>Clarity when it matters</h2><p>Help Anna and her caregiver understand the approved plan, one question at a time.</p></div></div>
+          <div id="cg-locked" class="card locked-card"><div class="locked-icon">⌑</div><h3>Waiting for clinician approval</h3><p>Once the care team approves the instructions, the voice assistant and task checklist will become available here.</p><span class="locked-tag">CARE PLAN NOT YET APPROVED</span></div>
+          <div id="cg-body" hidden><div class="caregiver-grid"><div class="primary-column"><article class="card"><div class="card-heading"><div class="step-icon violet">✦</div><div class="card-heading-copy"><div class="card-kicker">VOICE ASSISTANT</div><h3>What would you like to know?</h3><p>Ask about the approved instructions or report progress. Unanswered medical questions are referred to the care team.</p></div></div><div class="voice-prompt"><span class="voice-wave">〰</span><div><strong>Ask in your own words</strong><small>Speak naturally or type your question below.</small></div><button id="btn-mic" class="button-primary"><span>🎙</span> Start speaking</button></div><span id="mic-status" class="muted"></span><div id="interim" class="interim"></div><form id="chat-form" class="chat-input-row"><input id="chat-input" type="text" placeholder="e.g. What should we remember for tomorrow?" autocomplete="off"><button type="submit" class="button-primary">Send <span>↗</span></button></form></article><article class="card"><div class="card-heading"><div class="step-icon mint">↔</div><div class="card-heading-copy"><div class="card-kicker">CONVERSATION</div><h3>Questions and answers</h3><p>Answers should be grounded in the approved care plan.</p></div></div><div id="conversation" class="conversation-list"><p class="empty-state">Your conversation will appear here.</p></div></article></div><aside class="secondary-column"><article class="side-card checklist-card"><div class="side-card-title"><span>☑</span><h3>Care checklist</h3></div><p class="muted">Tasks and progress reported by the caregiver.</p><div id="checklist"></div></article></aside></div></div>
+        </section>
 
-      <div class="card">
-        <h2>3. Review conversation and document together</h2>
-        <button id="btn-draft">Generate draft with Claude</button>
-        <div id="draft"></div>
-      </div>
-
-      <div class="card">
-        <h2>Approved version</h2>
-        <div id="approved"></div>
-      </div>
-    </section>
-
-    <!-- Caregiver -->
-    <section id="tab-caregiver" class="panel">
-      <div id="cg-locked" class="card notice">Post-care questions open once a clinician approves the summary.</div>
-      <div id="cg-body" hidden>
-        <div class="card">
-          <h2>Ask a question</h2>
-          <div class="row">
-            <button id="btn-mic">🎙 Start speaking</button>
-            <span id="mic-status" class="muted"></span>
-          </div>
-          <div id="interim" class="interim"></div>
-          <form id="chat-form" class="row">
-            <input id="chat-input" type="text" placeholder="Or type your question (fallback)" autocomplete="off">
-            <button type="submit">Send</button>
-          </form>
-        </div>
-        <div class="card">
-          <h2>Conversation</h2>
-          <div id="conversation"></div>
-        </div>
-        <div class="card">
-          <h2>Checklist</h2>
-          <div id="checklist"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Report -->
-    <section id="tab-report" class="panel">
-      <div id="report" class="card"></div>
-    </section>
-  </main>
-
-  <script src="/app.js"></script>
-  <script src="/consultation.js"></script>
+        <section id="tab-report" class="panel"><div class="section-heading"><div><div class="eyebrow">ONE SHARED VIEW</div><h2>Care overview</h2><p>Approved instructions, follow-up actions, and questions still needing human attention.</p></div><span class="report-tag">CASE SUMMARY</span></div><div id="report" class="card report-card"><div class="empty-report"><span>▤</span><h3>Your care overview will appear here</h3><p>Approve the care instructions to generate a central report.</p></div></div></section>
+        <footer class="app-footer"><span>✳ PlainSpeak Lab</span><span>Built for clearer care journeys <span class="footer-dot">·</span> Synthetic demo only</span></footer>
+      </main>
+    </div>
+  </div>
+  <script src="/app.js"></script><script src="/consultation.js"></script>
+  <script>
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => {
+      const labels = {doctor:'Care @ Clinic', caregiver:'Care @ Home', report:'Care Overview'};
+      const titles = {doctor:'Care, made <em>clearer.</em>', caregiver:'Support that <em>stays with you.</em>', report:'One view. <em>Every next step.</em>'};
+      document.getElementById('crumb-current').textContent = labels[tab.dataset.tab];
+      document.getElementById('page-title').innerHTML = titles[tab.dataset.tab];
+      // The workflow strip tracks the case stage (renderJourney), not the selected tab.
+    }));
+  </script>
 </body>
 </html>

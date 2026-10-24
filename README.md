@@ -33,8 +33,9 @@ uv run python scripts/make_fixture.py
 
 Fill in `ANTHROPIC_API_KEY` and `RESON8_API_KEY` in your local `.env`. The copy command preserves
 an existing file. On macOS/Linux, use `test -f .env || cp .env.example .env` instead.
-The fixture command generates `fixtures/discharge.pdf`. Permanent keys are used only by the
-backend; the browser receives a temporary speech token.
+The fixture command generates `fixtures/discharge.pdf` and
+`fixtures/consultation-transcript.pdf`. Permanent keys are used only by the backend; the
+browser receives a temporary speech token.
 
 `.env` settings:
 
@@ -58,16 +59,52 @@ Open http://127.0.0.1:3001. Microphone access requires `localhost`/`127.0.0.1` o
 ## Demo
 
 1. **Doctor view:** Load demo case, confirm participant consent, and select English or German.
-2. **Start consultation:** Speak as clinician and patient; finalized lines save automatically.
-   Pauses do not end the session. Select **End and save consultation** when finished.
-   Confirm each anonymous voice as clinician or patient. A labelled manual fallback is available.
-   If saving fails, keep the page open and use **Retry saving transcript** before continuing.
+2. **Capture the consultation** in one of three ways, then confirm each anonymous voice as
+   clinician or patient:
+   - **Start consultation:** speak as clinician and patient; finalized lines save
+     automatically. Pauses do not end the session. Select **End and save consultation** when
+     finished. If saving fails, keep the page open and use **Retry saving transcript**.
+   - **Upload a written transcript PDF:** import a transcript prepared elsewhere. See
+     [transcript PDF format](#transcript-pdf-format) below.
+   - **Manual fallback:** enter one labelled line at a time.
 3. Upload `fixtures/discharge.pdf`, then **Generate draft with Claude**. Review the conversation
    and document together, edit the summary and tasks, then approve.
+
+   > **One case describes one patient.** Uploading a discharge PDF replaces the case's previous
+   > document, and importing a transcript PDF replaces the previous transcript. Drafting sends
+   > every source on the case to Claude, so without this a second patient's file would be
+   > summarised alongside the first. To start from nothing, use **Reset demo**.
 4. **Caregiver view:** ask aloud (or type) "What should I arrange before the follow-up?" and the answer shows source chips (hover for the passage text).
 5. Say "Transport is arranged." A confirmation card appears and the status changes only after **Confirm**.
 6. Ask something the document doesn't cover, such as "Can he take a shower?". The question is recorded locally for the care team; no message is sent automatically.
 7. **Central report:** approved instructions, self-reported updates, open tasks and unresolved questions.
+
+### Transcript PDF format
+
+All three capture methods produce the same `consultation_001` source, so an imported
+transcript is reviewed, approved and cited exactly like a recorded one. Upload
+`fixtures/consultation-transcript.pdf` to try it.
+
+```text
+Consultation Transcript - FICTIONAL DEMO DOCUMENT   <- ignored: before the first label
+[00:00:04] Clinician: Good morning Alex.            <- turn 1, startMs 4000
+Patient: I only needed my ID card, I thought.       <- turn 2, no timestamp
+and I may have misremembered the date.              <- continues turn 2
+```
+
+Each turn starts with a speaker label of at most four words followed by a colon. A leading
+timestamp (`[00:00:04]`, `(1:23)`, `12:30.500`) becomes `startMs`. A line with no label
+continues the turn above, which is how turns that wrap across PDF lines stay intact. Lines
+before the first labelled turn are ignored.
+
+Only unambiguous labels (`Clinician`, `Doctor`, `Dr.`, `Nurse`, `Patient`, …) pre-fill a
+role; anything else — including `Speaker 1` — stays unconfirmed for the clinician to set,
+and a role already confirmed in the UI is never overwritten by a later upload. Limits: 10 MB,
+300 turns, 8 distinct speakers, at least 2.
+
+An import **replaces** whatever was captured before it — live, manual or a previous import —
+so one case holds one consultation. Segment IDs are derived from the file's content hash, so
+re-uploading the same file is recognised and changes nothing at all.
 
 New transcript lines, speaker-role changes or documents require another review. Approval saves
 an evidence snapshot. Drafts generated against an older input revision cannot be approved by
@@ -79,26 +116,7 @@ Post-care uses `get_case_context` to load the approved evidence before asking Cl
 confirmation and rejection are application actions. Checklist generation is part of summary
 drafting; there is no separate Generate plan step. Progress applies to its approved version.
 
-## Memory clinic demo pack
-
-For the two-person memory-care scenario, use the
-[conversation script and caregiver test guide](fixtures/memory-care-demo-script.md).
-Record that consultation, then upload the
-[fictional memory clinic summary](output/pdf/plainspeak-memory-care-discharge.pdf)
-as the supporting document. Do not upload the script or expected answers.
-
-This is a separate scenario from the fall-related `fixtures/discharge.pdf`. Reset the demo case
-only when ready to clear the previous run. The memory clinic pack includes a corrected
-misunderstanding and spoken-only details to test consultation context. Its medicine record
-is synthetic and is not a real prescription.
-
-To regenerate the one-page PDF without adding a permanent project dependency:
-
-```powershell
-uv run --with reportlab python scripts/make_memory_care_demo.py
-```
-
-## Development checks
+## Development
 
 ```bash
 uv run ruff check .          # lint
@@ -115,7 +133,8 @@ src/plainspeak/
   api.py           HTTP routes and workflow gates
   contracts.py     shared data contracts (camelCase on the wire)
   storage.py       JSON case files
-  pdf_extract.py   PDF → passages
+  pdf_extract.py   PDF → passages and lines
+  transcript_import.py  transcript PDF lines → speaker-labelled segments
   voice.py         Reson8 token issuance
   ai/              Claude client, prompts, tool handlers, agent loop, summary drafting
   static/
@@ -123,7 +142,7 @@ src/plainspeak/
     app.js           review, caregiver voice, checklist and report
     consultation.js  continuous capture, speaker mapping and save recovery
     styles.css       frontend styles
-scripts/make_fixture.py   fictional discharge PDF generator
+scripts/make_fixture.py   fictional discharge + consultation transcript PDF generator
 tests/                    Python workflow tests and simulated speech-controller tests
 data/                     runtime data (git-ignored)
 ```
@@ -131,3 +150,7 @@ data/                     runtime data (git-ignored)
 The browser speech-controller tests use fake WebSocket and microphone APIs. They verify
 multi-speaker session persistence, finalization and save recovery, not live microphone quality
 or provider connectivity. Test a real microphone with Reson8 credentials before the demo.
+
+## Frontend refresh
+
+The frontend has been restyled as a responsive PlainSpeak Lab workspace with a dark navigation rail, care-journey progress, clearer consultation/document/review stages, source-grounded review cues, and dedicated at-home and care-overview views. Existing element IDs and JavaScript workflows have been retained. The Google Fonts stylesheet is an optional visual enhancement; system fonts remain available as fallback.
