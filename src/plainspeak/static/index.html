@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PlainSpeak MVP</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <h1>PlainSpeak</h1>
+    <span class="banner">Prototype with synthetic data only. Not for real patient records or clinical use.</span>
+    <span id="state" class="state"></span>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="doctor">Doctor view</button>
+    <button class="tab" data-tab="caregiver">Caregiver view</button>
+    <button class="tab" data-tab="report">Central report</button>
+    <span class="role-note">Demo role switch is a prototype convenience, not access control.</span>
+  </nav>
+
+  <div id="error" class="error" hidden></div>
+
+  <main>
+    <!-- Doctor -->
+    <section id="tab-doctor" class="panel active">
+      <div class="card">
+        <h2>1. Consultation and case</h2>
+        <div class="row">
+          <button id="btn-create">Load demo case</button>
+          <button id="btn-reset" class="secondary">Reset demo case</button>
+        </div>
+        <p class="muted">Capture the clinician and patient conversation first, then add the discharge document. No raw audio is stored by this app.</p>
+        <label><input type="checkbox" id="consult-consent"> Both participants agree to this fictional consultation being transcribed.</label>
+        <div class="row" style="margin-top:12px">
+          <select id="consult-language" style="width:auto" aria-label="Consultation language">
+            <option value="en">English</option>
+            <option value="de">German</option>
+            <option value="de,en">German and English</option>
+          </select>
+          <button id="btn-consult-start">Start consultation</button>
+          <button id="btn-consult-stop" class="secondary" disabled>End and save consultation</button>
+          <span id="consult-status" class="muted" role="status"></span>
+        </div>
+        <div id="consult-interim" class="interim" aria-live="polite"></div>
+        <div id="consult-speakers"></div>
+        <div id="consult-transcript" class="consult-transcript" aria-live="polite"></div>
+        <div id="consult-recovery"></div>
+        <details>
+          <summary>Manual transcript fallback</summary>
+          <p class="muted">Use only if live audio is unavailable. These lines are labelled as manually entered.</p>
+          <div class="row">
+            <select id="manual-speaker" style="width:auto" aria-label="Manual speaker"><option value="0">Clinician</option><option value="1">Patient</option></select>
+            <input id="manual-transcript" type="text" placeholder="Enter one spoken line" style="flex:1;width:auto">
+            <button id="btn-manual-transcript" class="secondary">Save line</button>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>2. Supporting medical document</h2>
+        <div class="row">
+          <input type="file" id="file" accept="application/pdf">
+          <button id="btn-upload">Upload PDF</button>
+        </div>
+        <div id="sources"></div>
+      </div>
+
+      <div class="card">
+        <h2>3. Review conversation and document together</h2>
+        <button id="btn-draft">Generate draft with Claude</button>
+        <div id="draft"></div>
+      </div>
+
+      <div class="card">
+        <h2>Approved version</h2>
+        <div id="approved"></div>
+      </div>
+    </section>
+
+    <!-- Caregiver -->
+    <section id="tab-caregiver" class="panel">
+      <div id="cg-locked" class="card notice">Post-care questions open once a clinician approves the summary.</div>
+      <div id="cg-body" hidden>
+        <div class="card">
+          <h2>Ask a question</h2>
+          <div class="row">
+            <button id="btn-mic">🎙 Start speaking</button>
+            <span id="mic-status" class="muted"></span>
+          </div>
+          <div id="interim" class="interim"></div>
+          <form id="chat-form" class="row">
+            <input id="chat-input" type="text" placeholder="Or type your question (fallback)" autocomplete="off">
+            <button type="submit">Send</button>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Conversation</h2>
+          <div id="conversation"></div>
+        </div>
+        <div class="card">
+          <h2>Checklist</h2>
+          <div id="checklist"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Report -->
+    <section id="tab-report" class="panel">
+      <div id="report" class="card"></div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+  <script src="/consultation.js"></script>
+</body>
+</html>

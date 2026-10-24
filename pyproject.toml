@@ -1,0 +1,49 @@
+[project]
+name = "plainspeak"
+version = "0.1.0"
+description = "PlainSpeak MVP: source-grounded post-care voice assistant (synthetic data demo)"
+readme = "README.md"
+authors = [
+    { name = "vivek26-1998", email = "vivekharidask@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=2.3.0",
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.16.1",
+    "pypdf>=6.21.2",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+plainspeak = "plainspeak.main:run"
+
+[build-system]
+requires = ["uv_build>=0.11.18,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "fpdf2>=2.8.9",
+    "pytest>=9.1.1",
+    "ruff>=0.17.2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "N", "RUF", "ASYNC", "S", "PTH"]
+ignore = ["S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
