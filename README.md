@@ -8,6 +8,9 @@ progress updates for a central report.
 **This is a synthetic-data demonstration, not a clinical application.** Use only the fictional
 fixture; do not upload real patient records.
 
+**Live demo:** https://plainspeak-qqbd.onrender.com/ (Render). See
+[Deploy to Render](#deploy-to-render) before sharing the link.
+
 ## Technical documentation
 
 - [HTTP API reference](docs/API.md): endpoints, payload examples, validation, and workflow semantics.
@@ -87,13 +90,21 @@ PLAINSPEAK_DATA_DIR=data
 
 `ANTHROPIC_MODEL` must be a model identifier available to your Anthropic account. Provider model availability can change. `RESON8_API_KEY` is required only for voice capture. Permanent keys are used by the backend; the browser receives a temporary speech token. Never paste secrets into source code, issue reports, or screenshots.
 
-Generate the fictional PDF fixtures:
+The repository includes two fictional demo PDFs for patient *Anna Müller*:
+
+- `fixtures/Anna_Mueller_Discharge_Report.pdf`: the discharge summary to upload.
+- `fixtures/Anna Mueller_Consultation_Transcript.pdf`: the matching consultation, for
+  **Upload a written transcript PDF**.
+
+Generate the smaller PDFs that the Python tests use:
 
 ```bash
 uv run python scripts/make_fixture.py
 ```
 
-This creates `fixtures/discharge.pdf` and `fixtures/consultation-transcript.pdf`. The repository includes synthetic fixture PDFs, but running the generator allows you to recreate them locally.
+This creates `fixtures/discharge.pdf` and `fixtures/consultation-transcript.pdf` for the
+fictional patient *Alex Example*. These files are not committed, so run this before
+`uv run pytest`.
 
 ### Setup (quick version)
 
@@ -152,8 +163,9 @@ not the selected view. They show *Consultation* until a discharge document is up
    - **Manual transcript fallback:** pick *Clinician* or *Patient*, enter one line and select
      **Save line**. Manual lines are pre-assigned to the chosen role and marked as manually
      entered.
-3. **Add the discharge document:** choose `fixtures/discharge.pdf` and select **Upload PDF**.
-   The status line shows the filename and passage count.
+3. **Add the discharge document:** choose `fixtures/Anna_Mueller_Discharge_Report.pdf` and
+   select **Upload PDF**. The status line shows the filename and passage count, and the patient
+   name in the sidebar fills in from the document.
 4. **Generate draft with Claude.** Edit the summary and the care tasks (instruction, optional
    timing, and who is responsible: patient, caregiver, care team or unspecified). You can add or
    remove tasks. Enter the approver name and select **Approve this version**. The approved
@@ -164,15 +176,16 @@ not the selected view. They show *Consultation* until a discharge document is up
    > every source on the case to Claude, so without this a second patient's file would be
    > summarised alongside the first. To start from nothing, use **Reset demo**.
 5. **Care @ Home** stays locked until the approval covers the case's current inputs. After
-   approval, select **Start speaking** (English only) or type, and ask "What should I arrange
-   before the follow-up?" Your question is sent when you pause, or right away if you select
-   **Finish question**. Answers show source chips; hover over one to see the passage text.
-   Caregiver questions can't be recorded while a consultation is recording.
-6. Say "Transport is arranged." A confirmation card appears, and the task status changes only
-   after **Confirm**. Select **Not right** to reject it. The *Care checklist* beside the
-   conversation shows each task's status and last update.
-7. Ask something the document doesn't cover, such as "Can Alex take a shower?" The question is
-   recorded locally for the care team; no message is sent automatically.
+   approval, select **Start speaking** (English only) or type, and ask "What should we bring
+   to the follow-up appointment?" Your question is sent when you pause, or right away if you
+   select **Finish question**. Answers show source chips; hover over one to see the passage
+   text. Caregiver questions can't be recorded while a consultation is recording.
+6. Report progress on a task from the *Care checklist*, for example "The medication list is
+   packed for the appointment." A confirmation card appears, and the task status changes only
+   after **Confirm**. Select **Not right** to reject it. The checklist shows each task's status
+   and last update. Claude writes the tasks, so match your wording to the ones in your draft.
+7. Ask something the document doesn't cover, such as "Can Anna have a glass of wine?" The
+   question is recorded locally for the care team; no message is sent automatically.
 8. **Care Overview:** approved instructions, the task checklist, self-reported updates (with the
    plan version they apply to), open tasks and unresolved questions.
 
@@ -180,7 +193,7 @@ not the selected view. They show *Consultation* until a discharge document is up
 
 All three capture methods produce the same `consultation_001` source, so an imported
 transcript is reviewed, approved and cited exactly like a recorded one. Upload
-`fixtures/consultation-transcript.pdf` to try it.
+`fixtures/Anna Mueller_Consultation_Transcript.pdf` to try it.
 
 ```text
 Consultation Transcript - FICTIONAL DEMO DOCUMENT   <- ignored: before the first label
@@ -212,6 +225,32 @@ Post-care uses `get_case_context` to load the approved evidence before asking Cl
 `get_case_context` and `propose_progress_update` are exposed as model tools. Approval, update
 confirmation and rejection are application actions. Checklist generation is part of summary
 drafting; there is no separate Generate plan step. Progress applies to its approved version.
+
+## Deploy to Render
+
+The live demo runs as a Render **Web Service** built from `main`:
+
+| Setting | Value |
+|---|---|
+| Language | Python 3 |
+| Build Command | `pip install uv && uv sync --frozen --no-dev` |
+| Start Command | `.venv/bin/uvicorn plainspeak.main:create_app --factory --host 0.0.0.0 --port $PORT` |
+| Environment | `ANTHROPIC_API_KEY`, `RESON8_API_KEY`, `PYTHON_VERSION=3.12.7` |
+
+The start command calls Uvicorn directly because `uv run plainspeak` listens only on
+`127.0.0.1`, which Render cannot reach. Render sets `$PORT`. Paste each command on its own,
+without the field label or a leading `$ `. Pushing to `main` redeploys the service.
+
+Before sharing the URL:
+
+- **One presenter at a time.** All visitors share the single `demo-patient` case, and every
+  page load resets it. Someone opening the link mid-demo wipes the transcript, draft and
+  approval.
+- **The free instance sleeps** after about 15 minutes idle, and waking it takes up to a minute.
+  Open the site a few minutes before presenting.
+- **Saved data does not survive a redeploy or restart.** `data/` is on ephemeral disk.
+- **No login.** Anyone with the URL can draft and ask questions using your Anthropic and Reson8
+  credits. Set a spending limit in the Anthropic console.
 
 ## Development
 
@@ -250,7 +289,8 @@ or provider connectivity. Test a real microphone with Reson8 credentials before 
 
 ## Frontend notes
 
-The UI is a responsive "PlainSpeak Lab" workspace with a dark navigation rail. Its persona
-labels ("Anna's care journey", "Anna Miller", case PS-2048) are fixed in `index.html`. They do
-not come from the case data: the fixture patient is *Alex Example* and the backend case ID is
-`demo-patient`. Fonts load from Google Fonts when online; system fonts are used otherwise.
+The UI is a responsive "PlainSpeak Lab" workspace with a dark navigation rail. The patient name
+in the sidebar, journey card and Care @ Home heading is read from the `Patient` line of the
+uploaded discharge document. Until a document is uploaded it shows a generic placeholder. The case label
+`PS-2048` is fixed in `index.html`; the backend case ID is `demo-patient`. Fonts load from
+Google Fonts when online; system fonts are used otherwise.
