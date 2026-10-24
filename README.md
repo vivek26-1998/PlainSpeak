@@ -56,28 +56,56 @@ uv run plainspeak
 
 Open http://127.0.0.1:3001. Microphone access requires `localhost`/`127.0.0.1` or HTTPS.
 
+> **Every page load starts a clean demo.** The app resets the single demo case
+> (`demo-patient`) when the page opens, so refreshing clears the transcript, document, drafts,
+> approvals and caregiver conversation. Keep the tab open for the whole demo. While a
+> consultation is recording or transcript lines are still unsaved, the browser asks before
+> leaving the page.
+
 ## Demo
 
-1. **Doctor view:** Load demo case, confirm participant consent, and select English or German.
+The left rail has three views: **Care @ Clinic**, **Care @ Home** and **Care Overview**. The
+progress strip at the top of Care @ Clinic and the journey card on the right follow the case,
+not the selected view. They show *Consultation* until a discharge document is uploaded, then
+*Clinician review*, then *At-home support* once the current inputs are approved.
+
+1. **Care @ Clinic:** tick the participant consent box. Consent is required for every capture
+   method. Choose the consultation language: English, German, or German + English.
 2. **Capture the consultation** in one of three ways, then confirm each anonymous voice as
-   clinician or patient:
-   - **Start consultation:** speak as clinician and patient; finalized lines save
-     automatically. Pauses do not end the session. Select **End and save consultation** when
-     finished. If saving fails, keep the page open and use **Retry saving transcript**.
-   - **Upload a written transcript PDF:** import a transcript prepared elsewhere. See
-     [transcript PDF format](#transcript-pdf-format) below.
-   - **Manual fallback:** enter one labelled line at a time.
-3. Upload `fixtures/discharge.pdf`, then **Generate draft with Claude**. Review the conversation
-   and document together, edit the summary and tasks, then approve.
+   clinician or patient with the *Voice N* selectors:
+   - **Start consultation:** speak as clinician and patient. Interim text appears as you speak,
+     and finalized lines save automatically. Pauses do not end the session. Select
+     **End & save** when finished. If saving fails, keep the page open and use
+     **Retry saving transcript**. While recording, the other capture, upload, draft, approve
+     and reset buttons are disabled.
+   - **Upload a written transcript PDF:** expand the section, choose a file and select
+     **Import transcript**. See [transcript PDF format](#transcript-pdf-format) below.
+   - **Manual transcript fallback:** pick *Clinician* or *Patient*, enter one line and select
+     **Save line**. Manual lines are pre-assigned to the chosen role and marked as manually
+     entered.
+3. **Add the discharge document:** choose `fixtures/discharge.pdf` and select **Upload PDF**.
+   The status line shows the filename and passage count.
+4. **Generate draft with Claude.** Edit the summary and the care tasks (instruction, optional
+   timing, and who is responsible: patient, caregiver, care team or unspecified). You can add or
+   remove tasks. Enter the approver name and select **Approve this version**. The approved
+   version appears under *Approved care instructions*.
 
    > **One case describes one patient.** Uploading a discharge PDF replaces the case's previous
    > document, and importing a transcript PDF replaces the previous transcript. Drafting sends
    > every source on the case to Claude, so without this a second patient's file would be
    > summarised alongside the first. To start from nothing, use **Reset demo**.
-4. **Caregiver view:** ask aloud (or type) "What should I arrange before the follow-up?" and the answer shows source chips (hover for the passage text).
-5. Say "Transport is arranged." A confirmation card appears and the status changes only after **Confirm**.
-6. Ask something the document doesn't cover, such as "Can he take a shower?". The question is recorded locally for the care team; no message is sent automatically.
-7. **Central report:** approved instructions, self-reported updates, open tasks and unresolved questions.
+5. **Care @ Home** stays locked until the approval covers the case's current inputs. After
+   approval, select **Start speaking** (English only) or type, and ask "What should I arrange
+   before the follow-up?" Your question is sent when you pause, or right away if you select
+   **Finish question**. Answers show source chips; hover over one to see the passage text.
+   Caregiver questions can't be recorded while a consultation is recording.
+6. Say "Transport is arranged." A confirmation card appears, and the task status changes only
+   after **Confirm**. Select **Not right** to reject it. The *Care checklist* beside the
+   conversation shows each task's status and last update.
+7. Ask something the document doesn't cover, such as "Can Alex take a shower?" The question is
+   recorded locally for the care team; no message is sent automatically.
+8. **Care Overview:** approved instructions, the task checklist, self-reported updates (with the
+   plan version they apply to), open tasks and unresolved questions.
 
 ### Transcript PDF format
 
@@ -138,7 +166,7 @@ src/plainspeak/
   voice.py         Reson8 token issuance
   ai/              Claude client, prompts, tool handlers, agent loop, summary drafting
   static/
-    index.html       doctor, caregiver and report tabs
+    index.html       Care @ Clinic, Care @ Home and Care Overview views
     app.js           review, caregiver voice, checklist and report
     consultation.js  continuous capture, speaker mapping and save recovery
     styles.css       frontend styles
@@ -151,6 +179,9 @@ The browser speech-controller tests use fake WebSocket and microphone APIs. They
 multi-speaker session persistence, finalization and save recovery, not live microphone quality
 or provider connectivity. Test a real microphone with Reson8 credentials before the demo.
 
-## Frontend refresh
+## Frontend notes
 
-The frontend has been restyled as a responsive PlainSpeak Lab workspace with a dark navigation rail, care-journey progress, clearer consultation/document/review stages, source-grounded review cues, and dedicated at-home and care-overview views. Existing element IDs and JavaScript workflows have been retained. The Google Fonts stylesheet is an optional visual enhancement; system fonts remain available as fallback.
+The UI is a responsive "PlainSpeak Lab" workspace with a dark navigation rail. Its persona
+labels ("Anna's care journey", "Anna Miller", case PS-2048) are fixed in `index.html`. They do
+not come from the case data: the fixture patient is *Alex Example* and the backend case ID is
+`demo-patient`. Fonts load from Google Fonts when online; system fonts are used otherwise.
